@@ -165,7 +165,6 @@ class TournamentApp:
         self.refresh_leaderboards()
 
     def refresh_admin_lists(self):
-        """Clears and refills the 3 boxes on the admin screen."""
         self.list_teams.delete(0, tk.END)
         for t in self.teams.keys(): self.list_teams.insert(tk.END, t)
 
@@ -177,7 +176,6 @@ class TournamentApp:
 
         #update leaderboards
     def refresh_leaderboards(self):
-        """Sorts data and updates the leaderboard tables."""
         
         for item in self.tree_team.get_children(): self.tree_team.delete(item)
         sorted_teams = sorted(self.teams.items(), key=lambda x: x[1], reverse=True)
