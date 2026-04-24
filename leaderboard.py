@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 import csv
 import os
-
+# Octopus King
 # File to store data
 CSV_FILE = "tournament_data.csv"
 
