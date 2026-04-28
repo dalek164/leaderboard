@@ -1,6 +1,8 @@
 import csv
 import os
 
+#octopus king
+
 class Participant:
     def __init__(self, name):
         self.name = name
