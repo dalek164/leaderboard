@@ -82,12 +82,12 @@ class Tournament:
 
     def show_leaderboard(self):
         print("\n=== TEAM LEADERBOARD ===")
-        sorted_teams = sorted(self.teams, key=lambda x: x.points, reverse=True)
+        sorted_teams = sorted(self.teams, key=lambda x: x.points, reverse=True) #HL3????
         for i, team in enumerate(sorted_teams, 1):
             print(f"{i}. {team.name}: {team.points} points (Events: {len(team.events_participated)})")
 
         print("\n=== INDIVIDUAL LEADERBOARD ===")
-        sorted_individuals = sorted(self.individuals, key=lambda x: x.points, reverse=True)
+        sorted_individuals = sorted(self.individuals, key=lambda x: x.points, reverse=True)   #HL3????
         for i, individual in enumerate(sorted_individuals, 1):
             print(f"{i}. {individual.name}: {individual.points} points (Events: {len(individual.events_participated)})")
 
@@ -95,11 +95,11 @@ class Tournament:
         print("\n=== OVERALL WINNERS ===")
 
         if self.teams:
-            team_winner = max(self.teams, key=lambda x: x.points)
+            team_winner = max(self.teams, key=lambda x: x.points)   #HL3????
             print(f"Winning Team: {team_winner.name} with {team_winner.points} points")
 
         if self.individuals:
-            individual_winner = max(self.individuals, key=lambda x: x.points)
+            individual_winner = max(self.individuals, key=lambda x: x.points)   #HL3????
             print(f"Winning Individual: {individual_winner.name} with {individual_winner.points} points")
 
     def save_data(self, filename='tournament_data'):
