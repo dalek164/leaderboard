@@ -1,0 +1,270 @@
+import tkinter as tk
+from tkinter import ttk, messagebox, simpledialog
+import csv
+import os
+# Octopus King
+# File to store data
+
+# no duplicated names/teams
+# event based scoreing
+# no points in the negitive
+# highlight top proformer
+# remove entry button fix
+
+CSV_FILE = "tournament_data.csv"
+
+class TournamentApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("College Tournament Scoring System")
+        self.root.geometry("800x500")
+
+        #Data Dictionaries
+        self.teams = {}        #Format: {"Team Name": score}
+        self.individuals = {}  #Format: {"Indiv Name": score}
+        self.events = []       #Format: ["100m Sprint", "football", etc.]
+
+        self.load_from_csv()
+
+        self.notebook = ttk.Notebook(root)
+        self.notebook.pack(fill="both", expand=True)
+
+        self.setup_admin_screen()
+        self.setup_leaderboard_screen()
+
+        self.refresh_admin_lists()
+        self.refresh_leaderboards()
+
+
+    #ADMIN SCREEN
+
+    def setup_admin_screen(self):
+        self.admin_frame = ttk.Frame(self.notebook)
+        self.notebook.add(self.admin_frame, text="Admin Screen (Manage)")
+
+        view_frame = tk.Frame(self.admin_frame)
+        view_frame.pack(fill="both", expand=True, pady=10, padx=10)
+
+        team_frame = tk.Frame(view_frame)
+        team_frame.pack(side="left", fill="both", expand=True, padx=5)
+        tk.Label(team_frame, text="Teams (Max 4)", font=("Arial", 12, "bold")).pack()
+        self.list_teams = tk.Listbox(team_frame)
+        self.list_teams.pack(fill="both", expand=True)
+
+        indiv_frame = tk.Frame(view_frame)
+        indiv_frame.pack(side="left", fill="both", expand=True, padx=5)
+        tk.Label(indiv_frame, text="Individuals (Max 20)", font=("Arial", 12, "bold")).pack()
+        self.list_indiv = tk.Listbox(indiv_frame)
+        self.list_indiv.pack(fill="both", expand=True)
+
+        event_frame = tk.Frame(view_frame)
+        event_frame.pack(side="left", fill="both", expand=True, padx=5)
+        tk.Label(event_frame, text="Events", font=("Arial", 12, "bold")).pack()
+        self.list_events = tk.Listbox(event_frame)
+        self.list_events.pack(fill="both", expand=True)
+
+        bottom_frame = tk.Frame(self.admin_frame)
+        bottom_frame.pack(fill="x", side="bottom", pady=10, padx=20)
+
+        btn_add = tk.Button(bottom_frame, text="Add New Entry", width=15, command=self.add_entry)
+        btn_add.pack(side="left")
+
+        btn_add = tk.Button(bottom_frame, text="Remove Entry", width=15, command=self.remove_entry)
+        btn_add.pack(side="left", pady=10 , padx=15)
+
+        btn_save = tk.Button(bottom_frame, text="Save to CSV", width=15, bg="lightgreen", command=self.save_to_csv)
+        btn_save.pack(side="right")
+
+
+    #LB screen
+
+    def setup_leaderboard_screen(self):
+        self.board_frame = ttk.Frame(self.notebook)
+        self.notebook.add(self.board_frame, text="Leaderboards (Scores)")
+        
+
+        #the 2 LBs 
+        boards_frame = tk.Frame(self.board_frame)
+        boards_frame.pack(fill="both", expand=True, pady=10, padx=10)
+
+        #Team LB
+        team_board_frame = tk.Frame(boards_frame)
+        team_board_frame.pack(side="left", fill="both", expand=True, padx=5)
+        tk.Label(team_board_frame, text="Team Leaderboard", font=("Arial", 12, "bold")).pack()
+        
+        self.tree_team = ttk.Treeview(team_board_frame, columns=("rank", "name", "score"), show="headings")
+        self.tree_team.heading("rank", text="Rank")
+        self.tree_team.heading("name", text="Team Name")
+        self.tree_team.heading("score", text="Points")
+        self.tree_team.column("rank", width=50, anchor="center")
+        self.tree_team.column("score", width=80, anchor="center")
+        self.tree_team.pack(fill="both", expand=True)
+
+        #Individual LB
+        indiv_board_frame = tk.Frame(boards_frame)
+        indiv_board_frame.pack(side="left", fill="both", expand=True, padx=5)
+        tk.Label(indiv_board_frame, text="Individual Leaderboard", font=("Arial", 12, "bold")).pack()
+        
+        self.tree_indiv = ttk.Treeview(indiv_board_frame, columns=("rank", "name", "score"), show="headings")
+        self.tree_indiv.heading("rank", text="Rank")
+        self.tree_indiv.heading("name", text="Competitor Name")
+        self.tree_indiv.heading("score", text="Points")
+        self.tree_indiv.column("rank", width=50, anchor="center")
+        self.tree_indiv.column("score", width=80, anchor="center")
+        self.tree_indiv.pack(fill="both", expand=True)
+
+        controls_frame = tk.Frame(self.board_frame)
+        controls_frame.pack(fill="x", side="bottom", pady=10)
+
+        btn_add_pts = tk.Button(controls_frame, text="+ Add 5 Points", width=15, bg="lightgreen", command=lambda: self.modify_points(5))
+        btn_add_pts.pack(side="left", padx=20)
+
+        btn_rem_pts = tk.Button(controls_frame, text="- Remove 5 Points", width=15, bg="lightcoral", command=lambda: self.modify_points(-5))
+        btn_rem_pts.pack(side="left")
+
+
+    
+    
+    
+    
+    
+    #logic
+    
+    def add_entry(self):
+        choice = simpledialog.askstring("Add Entry", "What do you want to add?\n(Type: 'team', 'individual', or 'event')")
+        if not choice:
+            return
+            
+        choice = str(choice.lower().strip())
+        name = simpledialog.askstring("Name", f"Enter the name for the new {choice}:")
+        
+        if not name:
+            return
+
+        if choice == 'team':
+            if len(self.teams) >= 4:
+                messagebox.showerror("Limit Reached", "You cannot have more than 4 teams.")
+                return
+            self.teams[name] = 0
+        elif choice == 'individual':
+            if len(self.individuals) >= 20:
+                messagebox.showerror("Limit Reached", "You cannot have more than 20 individuals.")
+                return
+            self.individuals[name] = 0
+        elif choice == 'event':
+            self.events.append(name)
+        else:
+            messagebox.showerror("Error", "Invalid category. Must be team, individual, or event.")
+
+        self.refresh_admin_lists()
+        self.refresh_leaderboards()
+
+    def remove_entry(self):
+        choice = simpledialog.askstring("Remove Entry", "What do you want to delete?\n(Type: 'team', 'individual', or 'event')")
+        if not choice:
+            return
+            
+        choice = choice.lower().strip()
+        remove_name = simpledialog.askstring("Name", f"Enter the name for the new {choice}:")
+        
+        if not remove_name:
+            return
+
+        if choice == 'team':
+            self.teams.pop(remove_name, None)
+        elif choice == 'individual':
+            self.individuals.pop(remove_name, None)
+        elif choice == 'event':
+            self.events.pop(remove_name, None)
+        else:
+            messagebox.showerror("Error", "Invalid category. Must be team, individual, or event.")
+
+        self.refresh_admin_lists()
+        self.refresh_leaderboards()
+
+    def modify_points(self, amount):
+        #check selected team/indiv
+        selected_team = self.tree_team.selection()
+        if selected_team:
+            item = self.tree_team.item(selected_team)
+            name = item['values'][1]
+            self.teams[name] += amount
+        
+
+        selected_indiv = self.tree_indiv.selection()
+        if selected_indiv:
+            item = self.tree_indiv.item(selected_indiv)
+            name = item['values'][1]
+            self.individuals[name] += amount
+
+        self.refresh_leaderboards()
+
+
+    def refresh_admin_lists(self):
+        self.list_teams.delete(0, tk.END)
+        for t in self.teams.keys(): self.list_teams.insert(tk.END, t)
+
+        self.list_indiv.delete(0, tk.END)
+        for i in self.individuals.keys(): self.list_indiv.insert(tk.END, i)
+
+        self.list_events.delete(0, tk.END)
+        for e in self.events: self.list_events.insert(tk.END, e)
+
+        #update leaderboards
+    def refresh_leaderboards(self):
+        
+        for item in self.tree_team.get_children(): self.tree_team.delete(item)
+        sorted_teams = sorted(self.teams.items(), key=lambda x: x[1], reverse=True)
+        for rank, (name, score) in enumerate(sorted_teams, 1):
+            self.tree_team.insert("", "end", values=(rank, name, score))
+
+        
+        for item in self.tree_indiv.get_children(): self.tree_indiv.delete(item)
+        sorted_indivs = sorted(self.individuals.items(), key=lambda x: x[1], reverse=True)
+        for rank, (name, score) in enumerate(sorted_indivs, 1):
+            self.tree_indiv.insert("", "end", values=(rank, name, score))
+
+    def save_to_csv(self):
+        #Saves data into a CSV file
+        try:
+            with open(CSV_FILE, mode='w', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(["Type", "Name", "Score"])
+                
+                for team, score in self.teams.items():
+                    writer.writerow(["TEAM", team, score])
+                for indiv, score in self.individuals.items():
+                    writer.writerow(["INDIVIDUAL", indiv, score])
+                for event in self.events:
+                    writer.writerow(["EVENT", event, ""])
+            
+            messagebox.showinfo("Success", "Data saved to CSV successfully!")
+        except Exception as e:
+            messagebox.showerror("Save Error", f"Could not save file:\n{e}")
+
+    def load_from_csv(self):
+        #Loads data from the CSV
+        if not os.path.exists(CSV_FILE):
+            return
+
+        with open(CSV_FILE, mode='r') as file:
+            reader = csv.reader(file)
+            next(reader, None)
+            for row in reader:
+                if len(row) < 2: continue
+                
+                item_type = row[0]
+                name = row[1]
+                score = int(row[2]) if row[2] else 0
+
+                if item_type == "TEAM":
+                    self.teams[name] = score
+                elif item_type == "INDIVIDUAL":
+                    self.individuals[name] = score
+                elif item_type == "EVENT":
+                    self.events.append(name)
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = TournamentApp(root)
+    root.mainloop()
