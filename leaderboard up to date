@@ -167,7 +167,7 @@ class TournamentApp:
             return
             
         choice = choice.lower().strip()
-        remove_name = simpledialog.askstring("Name", f"Enter the name for the new {choice}:")
+        remove_name = simpledialog.askstring("Name", f"Enter the name of what you want to remove. {choice}:")
         
         if not remove_name:
             return
