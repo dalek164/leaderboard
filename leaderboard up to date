@@ -5,11 +5,13 @@ import os
 # Octopus King
 # File to store data
 
-# no duplicated names/teams
-# event based scoreing
-# no points in the negitive
+# no duplicated names/teams 
+# event based scoreing cant do in a reseable amout of time
+# no points in the negitive done?
 # highlight top proformer
-# remove entry button fix
+# remove entry button fix done
+# validation for amounts done
+# leaderboard refresh done
 
 CSV_FILE = "tournament_data.csv"
 
