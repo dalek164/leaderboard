@@ -17,6 +17,7 @@ class TournamentApp:
         #Data Dictionaries
         self.teams = {}        #Format: {"Team Name": score}
         self.individuals = {}  #Format: {"Indiv Name": score}
+        self.team_members = {} #Format: {"Team Name": ["Indiv Name", ...]}
         self.events = []       #Format: ["100m Sprint", "football", etc.]
         # Rank matrix: points awarded for finishing positions (index 0 -> 1st place)
         # Modify this list to change how many points each rank receives.
@@ -66,6 +67,9 @@ class TournamentApp:
 
         btn_add = tk.Button(bottom_frame, text="Add New Entry", width=15, command=self.add_entry)
         btn_add.pack(side="left")
+
+        btn_assign = tk.Button(bottom_frame, text="Assign Individual to Team", width=22, command=self.add_individual_to_team)
+        btn_assign.pack(side="left", pady=10, padx=5)
 
         btn_add = tk.Button(bottom_frame, text="Remove Entry", width=15, command=self.remove_entry)
         btn_add.pack(side="left", pady=10 , padx=15)
@@ -135,7 +139,7 @@ class TournamentApp:
     #logic
     
     def add_entry(self):
-        choice = simpledialog.askstring("Add Entry", "What do you want to add?\n(Type: 'team', 'individual', or 'event')")
+        choice = simpledialog.askstring("Add Entry", "What do you want to add?\n(Type: 'team' (T), 'individual' (I), or 'event' (E))")
         if not choice:
             return
             
@@ -145,17 +149,18 @@ class TournamentApp:
         if not name:
             return
 
-        if choice == 'team':
+        if choice in ('team', 't'):
             if len(self.teams) >= 4:
                 messagebox.showerror("Limit Reached", "You cannot have more than 4 teams.")
                 return
             self.teams[name] = 0
-        elif choice == 'individual':
+            self.team_members[name] = []
+        elif choice in ('individual', 'i'):
             if len(self.individuals) >= 20:
                 messagebox.showerror("Limit Reached", "You cannot have more than 20 individuals.")
                 return
             self.individuals[name] = 0
-        elif choice == 'event':
+        elif choice in ('event', 'e'):
             if len(self.events) >= 5:
                 messagebox.showerror("Limit Reached", "You cannot have more than 5 events.")
                 return
@@ -179,10 +184,15 @@ class TournamentApp:
 
         if choice == 'team':
             self.teams.pop(remove_name, None)
+            self.team_members.pop(remove_name, None)
         elif choice == 'individual':
             self.individuals.pop(remove_name, None)
+            for members in self.team_members.values():
+                if remove_name in members:
+                    members.remove(remove_name)
         elif choice == 'event':
-            self.events.pop(remove_name, None)
+            if remove_name in self.events:
+                self.events.remove(remove_name)
         else:
             messagebox.showerror("Error", "Invalid category. Must be team, individual, or event.")
 
@@ -206,6 +216,44 @@ class TournamentApp:
 
         self.refresh_leaderboards()
 
+
+    def add_individual_to_team(self):
+        if not self.teams:
+            messagebox.showerror("No Teams", "No teams available. Add a team first.")
+            return
+        if not self.individuals:
+            messagebox.showerror("No Individuals", "No individuals available. Add an individual first.")
+            return
+
+        team = simpledialog.askstring("Assign Individual", f"Enter a team name from the list:\n{', '.join(self.teams.keys())}")
+        if not team:
+            return
+        team = team.strip()
+        if team not in self.teams:
+            messagebox.showerror("Invalid Team", "Team not found. Please enter a valid team name.")
+            return
+
+        indiv = simpledialog.askstring("Assign Individual", f"Enter an individual name from the list:\n{', '.join(self.individuals.keys())}")
+        if not indiv:
+            return
+        indiv = indiv.strip()
+        if indiv not in self.individuals:
+            messagebox.showerror("Invalid Individual", "Individual not found. Please enter a valid individual name.")
+            return
+
+        self.team_members.setdefault(team, [])
+        current_team = next((t for t, members in self.team_members.items() if indiv in members), None)
+        if current_team == team:
+            messagebox.showinfo("Already Assigned", f"{indiv} is already assigned to {team}.")
+            return
+        if current_team:
+            confirm = messagebox.askyesno("Reassign Individual", f"{indiv} is already assigned to {current_team}.\nMove them to {team}?")
+            if not confirm:
+                return
+            self.team_members[current_team].remove(indiv)
+
+        self.team_members[team].append(indiv)
+        messagebox.showinfo("Assigned", f"{indiv} has been assigned to {team}.")
 
     def record_event_result(self):
         # Let the user pick an event and enter finish order; apply points from rank_matrix
@@ -331,14 +379,17 @@ class TournamentApp:
         try:
             with open(CSV_FILE, mode='w', newline='') as file:
                 writer = csv.writer(file)
-                writer.writerow(["Type", "Name", "Score"])
+                writer.writerow(["Type", "Name", "Score", "Secondary"])
                 
                 for team, score in self.teams.items():
-                    writer.writerow(["TEAM", team, score])
+                    writer.writerow(["TEAM", team, score, ""])
                 for indiv, score in self.individuals.items():
-                    writer.writerow(["INDIVIDUAL", indiv, score])
+                    writer.writerow(["INDIVIDUAL", indiv, score, ""])
                 for event in self.events:
-                    writer.writerow(["EVENT", event, ""])
+                    writer.writerow(["EVENT", event, "", ""])
+                for team, members in self.team_members.items():
+                    for member in members:
+                        writer.writerow(["TEAM_MEMBER", team, "", member])
             
             messagebox.showinfo("Success", "Data saved to CSV successfully!")
         except Exception as e:
@@ -357,14 +408,20 @@ class TournamentApp:
                 
                 item_type = row[0]
                 name = row[1]
-                score = int(row[2]) if row[2] else 0
+                score = int(row[2]) if len(row) > 2 and row[2] else 0
 
                 if item_type == "TEAM":
                     self.teams[name] = score
+                    self.team_members.setdefault(name, [])
                 elif item_type == "INDIVIDUAL":
                     self.individuals[name] = score
                 elif item_type == "EVENT":
                     self.events.append(name)
+                elif item_type == "TEAM_MEMBER" and len(row) > 3:
+                    team_name = name
+                    member_name = row[3]
+                    if team_name in self.teams and member_name in self.individuals:
+                        self.team_members.setdefault(team_name, []).append(member_name)
 
 if __name__ == "__main__":
     root = tk.Tk()
