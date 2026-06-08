@@ -12,7 +12,7 @@ class TournamentApp:
     def __init__(self, root):
         self.root = root
         self.root.title("College Tournament Scoring System")
-        self.root.geometry("800x500")
+        self.root.geometry("1000x700")
 
         #Data Dictionaries
         self.teams = {}        #Format: {"Team Name": score}
@@ -76,9 +76,13 @@ class TournamentApp:
 
         btn_save = tk.Button(bottom_frame, text="Save to CSV", width=15, bg="lightgreen", command=self.save_to_csv)
         btn_save.pack(side="right")
+
+        btn_show = tk.Button(bottom_frame, text="Show Team Rosters", width=18, command=self.show_team_rosters)
+        btn_show.pack(side="right", padx=8)
         
         btn_edit_rank = tk.Button(bottom_frame, text="Edit Rank Matrix", width=15, bg="lightyellow", command=self.edit_rank_matrix)
         btn_edit_rank.pack(side="right", padx=8)
+        
 
 
     #LB screen
@@ -131,7 +135,7 @@ class TournamentApp:
         btn_record.pack(side="left", padx=10)
 
 
-    
+
     
     
     
@@ -254,6 +258,32 @@ class TournamentApp:
 
         self.team_members[team].append(indiv)
         messagebox.showinfo("Assigned", f"{indiv} has been assigned to {team}.")
+
+    def show_team_rosters(self):
+        if not self.teams:
+            messagebox.showinfo("No Teams", "There are no teams to show.")
+            return
+
+        roster_window = tk.Toplevel(self.root)
+        roster_window.title("Team Rosters")
+        roster_window.geometry("400x350")
+
+        text = tk.Text(roster_window, wrap="word", state="normal")
+        text.pack(fill="both", expand=True, padx=10, pady=10)
+
+        if not self.team_members or all(len(members) == 0 for members in self.team_members.values()):
+            text.insert("end", "No team assignments yet.\n")
+        else:
+            for team, members in self.team_members.items():
+                text.insert("end", f"{team}:\n")
+                if members:
+                    for member in members:
+                        text.insert("end", f"  - {member}\n")
+                else:
+                    text.insert("end", "  (No individuals assigned)\n")
+                text.insert("end", "\n")
+
+        text.configure(state="disabled")
 
     def record_event_result(self):
         # Let the user pick an event and enter finish order; apply points from rank_matrix
